@@ -82,7 +82,8 @@ func (p *ProviderData) Redeem(ctx context.Context, redirectURL, code string) (s 
 		return
 	}
 	if a := v.Get("access_token"); a != "" {
-		s = &sessions.SessionState{AccessToken: a, CreatedAt: time.Now()}
+		created := time.Now()
+		s = &sessions.SessionState{AccessToken: a, CreatedAt: &created}
 	} else {
 		err = fmt.Errorf("no access token found %s", body)
 	}
@@ -179,7 +180,7 @@ func (p *ProviderData) CreateSessionStateFromBearerToken(ctx context.Context, ra
 	newSession.AccessToken = rawIDToken
 	newSession.IDToken = rawIDToken
 	newSession.RefreshToken = ""
-	newSession.ExpiresOn = idToken.Expiry
+	newSession.ExpiresOn = &idToken.Expiry
 
 	return newSession, nil
 }
