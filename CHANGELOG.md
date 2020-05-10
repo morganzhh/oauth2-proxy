@@ -28,6 +28,7 @@
 
 ## Changes since v5.1.1
 
+- [#542](https://github.com/oauth2-proxy/oauth2-proxy/pull/542) Move SessionStore tests to independent package (@JoelSpeed)
 - [#535](https://github.com/oauth2-proxy/oauth2-proxy/pull/535) Drop support for pre v3.1 cookies (@JoelSpeed)
 - [#533](https://github.com/oauth2-proxy/oauth2-proxy/pull/487) Set up code coverage within Travis for Code Climate (@JoelSpeed)
 - [#514](https://github.com/oauth2-proxy/oauth2-proxy/pull/514) Add basic string functions to templates
