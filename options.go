@@ -69,6 +69,7 @@ type Options struct {
 
 	Cookie  options.CookieOptions  `cfg:",squash"`
 	Session options.SessionOptions `cfg:",squash"`
+	Logging options.LoggingOptions `cfg:",squash"`
 
 	Upstreams                     []string      `flag:"upstream" cfg:"upstreams" env:"OAUTH2_PROXY_UPSTREAMS"`
 	SkipAuthRegex                 []string      `flag:"skip-auth-regex" cfg:"skip_auth_regex" env:"OAUTH2_PROXY_SKIP_AUTH_REGEX"`
@@ -109,27 +110,12 @@ type Options struct {
 	ApprovalPrompt                     string `flag:"approval-prompt" cfg:"approval_prompt" env:"OAUTH2_PROXY_APPROVAL_PROMPT"` // Deprecated by OIDC 1.0
 	UserIDClaim                        string `flag:"user-id-claim" cfg:"user_id_claim" env:"OAUTH2_PROXY_USER_ID_CLAIM"`
 
-	// Configuration values for logging
-	LoggingFilename       string `flag:"logging-filename" cfg:"logging_filename" env:"OAUTH2_PROXY_LOGGING_FILENAME"`
-	LoggingMaxSize        int    `flag:"logging-max-size" cfg:"logging_max_size" env:"OAUTH2_PROXY_LOGGING_MAX_SIZE"`
-	LoggingMaxAge         int    `flag:"logging-max-age" cfg:"logging_max_age" env:"OAUTH2_PROXY_LOGGING_MAX_AGE"`
-	LoggingMaxBackups     int    `flag:"logging-max-backups" cfg:"logging_max_backups" env:"OAUTH2_PROXY_LOGGING_MAX_BACKUPS"`
-	LoggingLocalTime      bool   `flag:"logging-local-time" cfg:"logging_local_time" env:"OAUTH2_PROXY_LOGGING_LOCAL_TIME"`
-	LoggingCompress       bool   `flag:"logging-compress" cfg:"logging_compress" env:"OAUTH2_PROXY_LOGGING_COMPRESS"`
-	StandardLogging       bool   `flag:"standard-logging" cfg:"standard_logging" env:"OAUTH2_PROXY_STANDARD_LOGGING"`
-	StandardLoggingFormat string `flag:"standard-logging-format" cfg:"standard_logging_format" env:"OAUTH2_PROXY_STANDARD_LOGGING_FORMAT"`
-	RequestLogging        bool   `flag:"request-logging" cfg:"request_logging" env:"OAUTH2_PROXY_REQUEST_LOGGING"`
-	RequestLoggingFormat  string `flag:"request-logging-format" cfg:"request_logging_format" env:"OAUTH2_PROXY_REQUEST_LOGGING_FORMAT"`
-	ExcludeLoggingPaths   string `flag:"exclude-logging-paths" cfg:"exclude_logging_paths" env:"OAUTH2_PROXY_EXCLUDE_LOGGING_PATHS"`
-	SilencePingLogging    bool   `flag:"silence-ping-logging" cfg:"silence_ping_logging" env:"OAUTH2_PROXY_SILENCE_PING_LOGGING"`
-	AuthLogging           bool   `flag:"auth-logging" cfg:"auth_logging" env:"OAUTH2_PROXY_LOGGING_AUTH_LOGGING"`
-	AuthLoggingFormat     string `flag:"auth-logging-format" cfg:"auth_logging_format" env:"OAUTH2_PROXY_AUTH_LOGGING_FORMAT"`
-	SignatureKey          string `flag:"signature-key" cfg:"signature_key" env:"OAUTH2_PROXY_SIGNATURE_KEY"`
-	AcrValues             string `flag:"acr-values" cfg:"acr_values" env:"OAUTH2_PROXY_ACR_VALUES"`
-	JWTKey                string `flag:"jwt-key" cfg:"jwt_key" env:"OAUTH2_PROXY_JWT_KEY"`
-	JWTKeyFile            string `flag:"jwt-key-file" cfg:"jwt_key_file" env:"OAUTH2_PROXY_JWT_KEY_FILE"`
-	PubJWKURL             string `flag:"pubjwk-url" cfg:"pubjwk_url" env:"OAUTH2_PROXY_PUBJWK_URL"`
-	GCPHealthChecks       bool   `flag:"gcp-healthchecks" cfg:"gcp_healthchecks" env:"OAUTH2_PROXY_GCP_HEALTHCHECKS"`
+	SignatureKey    string `flag:"signature-key" cfg:"signature_key" env:"OAUTH2_PROXY_SIGNATURE_KEY"`
+	AcrValues       string `flag:"acr-values" cfg:"acr_values" env:"OAUTH2_PROXY_ACR_VALUES"`
+	JWTKey          string `flag:"jwt-key" cfg:"jwt_key" env:"OAUTH2_PROXY_JWT_KEY"`
+	JWTKeyFile      string `flag:"jwt-key-file" cfg:"jwt_key_file" env:"OAUTH2_PROXY_JWT_KEY_FILE"`
+	PubJWKURL       string `flag:"pubjwk-url" cfg:"pubjwk_url" env:"OAUTH2_PROXY_PUBJWK_URL"`
+	GCPHealthChecks bool   `flag:"gcp-healthchecks" cfg:"gcp_healthchecks" env:"OAUTH2_PROXY_GCP_HEALTHCHECKS"`
 
 	// internal values that are set after config validation
 	redirectURL        *url.URL
@@ -184,20 +170,24 @@ func NewOptions() *Options {
 		UserIDClaim:                      "email",
 		InsecureOIDCAllowUnverifiedEmail: false,
 		SkipOIDCDiscovery:                false,
-		LoggingFilename:                  "",
-		LoggingMaxSize:                   100,
-		LoggingMaxAge:                    7,
-		LoggingMaxBackups:                0,
-		LoggingLocalTime:                 true,
-		LoggingCompress:                  false,
-		ExcludeLoggingPaths:              "",
-		SilencePingLogging:               false,
-		StandardLogging:                  true,
-		StandardLoggingFormat:            logger.DefaultStandardLoggingFormat,
-		RequestLogging:                   true,
-		RequestLoggingFormat:             logger.DefaultRequestLoggingFormat,
-		AuthLogging:                      true,
-		AuthLoggingFormat:                logger.DefaultAuthLoggingFormat,
+		Logging: options.LoggingOptions{
+			ExcludePaths:    "",
+			LocalTime:       true,
+			SilencePing:     false,
+			AuthEnabled:     true,
+			AuthFormat:      logger.DefaultAuthLoggingFormat,
+			RequestEnabled:  true,
+			RequestFormat:   logger.DefaultRequestLoggingFormat,
+			StandardEnabled: true,
+			StandardFormat:  logger.DefaultStandardLoggingFormat,
+			File: options.LogFileOptions{
+				Filename:   "",
+				MaxSize:    100,
+				MaxAge:     7,
+				MaxBackups: 0,
+				Compress:   false,
+			},
+		},
 	}
 }
 
@@ -668,55 +658,55 @@ func secretBytes(secret string) []byte {
 
 func setupLogger(o *Options, msgs []string) []string {
 	// Setup the log file
-	if len(o.LoggingFilename) > 0 {
+	if len(o.Logging.File.Filename) > 0 {
 		// Validate that the file/dir can be written
-		file, err := os.OpenFile(o.LoggingFilename, os.O_WRONLY|os.O_CREATE, 0666)
+		file, err := os.OpenFile(o.Logging.File.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			if os.IsPermission(err) {
-				return append(msgs, "unable to write to log file: "+o.LoggingFilename)
+				return append(msgs, "unable to write to log file: "+o.Logging.File.Filename)
 			}
 		}
 		file.Close()
 
-		logger.Printf("Redirecting logging to file: %s", o.LoggingFilename)
+		logger.Printf("Redirecting logging to file: %s", o.Logging.File.Filename)
 
 		logWriter := &lumberjack.Logger{
-			Filename:   o.LoggingFilename,
-			MaxSize:    o.LoggingMaxSize, // megabytes
-			MaxAge:     o.LoggingMaxAge,  // days
-			MaxBackups: o.LoggingMaxBackups,
-			LocalTime:  o.LoggingLocalTime,
-			Compress:   o.LoggingCompress,
+			Filename:   o.Logging.File.Filename,
+			MaxSize:    o.Logging.File.MaxSize, // megabytes
+			MaxAge:     o.Logging.File.MaxAge,  // days
+			MaxBackups: o.Logging.File.MaxBackups,
+			LocalTime:  o.Logging.LocalTime,
+			Compress:   o.Logging.File.Compress,
 		}
 
 		logger.SetOutput(logWriter)
 	}
 
 	// Supply a sanity warning to the logger if all logging is disabled
-	if !o.StandardLogging && !o.AuthLogging && !o.RequestLogging {
+	if !o.Logging.StandardEnabled && !o.Logging.AuthEnabled && !o.Logging.RequestEnabled {
 		logger.Print("Warning: Logging disabled. No further logs will be shown.")
 	}
 
 	// Pass configuration values to the standard logger
-	logger.SetStandardEnabled(o.StandardLogging)
-	logger.SetAuthEnabled(o.AuthLogging)
-	logger.SetReqEnabled(o.RequestLogging)
-	logger.SetStandardTemplate(o.StandardLoggingFormat)
-	logger.SetAuthTemplate(o.AuthLoggingFormat)
-	logger.SetReqTemplate(o.RequestLoggingFormat)
+	logger.SetStandardEnabled(o.Logging.StandardEnabled)
+	logger.SetAuthEnabled(o.Logging.AuthEnabled)
+	logger.SetReqEnabled(o.Logging.RequestEnabled)
+	logger.SetStandardTemplate(o.Logging.StandardFormat)
+	logger.SetAuthTemplate(o.Logging.AuthFormat)
+	logger.SetReqTemplate(o.Logging.RequestFormat)
 	logger.SetGetClientFunc(func(r *http.Request) string {
 		return getClientString(o.realClientIPParser, r, false)
 	})
 
 	excludePaths := make([]string, 0)
-	excludePaths = append(excludePaths, strings.Split(o.ExcludeLoggingPaths, ",")...)
-	if o.SilencePingLogging {
+	excludePaths = append(excludePaths, strings.Split(o.Logging.ExcludePaths, ",")...)
+	if o.Logging.SilencePing {
 		excludePaths = append(excludePaths, o.PingPath)
 	}
 
 	logger.SetExcludePaths(excludePaths)
 
-	if !o.LoggingLocalTime {
+	if !o.Logging.LocalTime {
 		logger.SetFlags(logger.Flags() | logger.LUTC)
 	}
 
