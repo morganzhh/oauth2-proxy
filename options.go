@@ -24,8 +24,8 @@ import (
 	"github.com/oauth2-proxy/oauth2-proxy/pkg/logger"
 	"github.com/oauth2-proxy/oauth2-proxy/pkg/requests"
 	"github.com/oauth2-proxy/oauth2-proxy/pkg/sessions"
+	"github.com/oauth2-proxy/oauth2-proxy/pkg/validation"
 	"github.com/oauth2-proxy/oauth2-proxy/providers"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // Options holds Configuration Options that can be set by Command Line Flag,
@@ -446,13 +446,17 @@ func (o *Options) Validate() error {
 
 	msgs = parseSignatureKey(o, msgs)
 	msgs = validateCookieName(o, msgs)
-	msgs = setupLogger(o, msgs)
+	msgs = validation.ConfigureLogger(o.Logging, o.PingPath, msgs)
 
 	if o.ReverseProxy {
 		o.realClientIPParser, err = getRealClientIPParser(o.RealClientIPHeader)
 		if err != nil {
 			msgs = append(msgs, fmt.Sprintf("real_client_ip_header (%s) not accepted parameter value: %v", o.RealClientIPHeader, err))
 		}
+		// Allow the logger to get client IPs
+		logger.SetGetClientFunc(func(r *http.Request) string {
+			return getClientString(o.realClientIPParser, r, false)
+		})
 	}
 
 	if len(msgs) != 0 {
@@ -654,61 +658,4 @@ func secretBytes(secret string) []byte {
 		return []byte(addPadding(string(b)))
 	}
 	return []byte(secret)
-}
-
-func setupLogger(o *Options, msgs []string) []string {
-	// Setup the log file
-	if len(o.Logging.File.Filename) > 0 {
-		// Validate that the file/dir can be written
-		file, err := os.OpenFile(o.Logging.File.Filename, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			if os.IsPermission(err) {
-				return append(msgs, "unable to write to log file: "+o.Logging.File.Filename)
-			}
-		}
-		file.Close()
-
-		logger.Printf("Redirecting logging to file: %s", o.Logging.File.Filename)
-
-		logWriter := &lumberjack.Logger{
-			Filename:   o.Logging.File.Filename,
-			MaxSize:    o.Logging.File.MaxSize, // megabytes
-			MaxAge:     o.Logging.File.MaxAge,  // days
-			MaxBackups: o.Logging.File.MaxBackups,
-			LocalTime:  o.Logging.LocalTime,
-			Compress:   o.Logging.File.Compress,
-		}
-
-		logger.SetOutput(logWriter)
-	}
-
-	// Supply a sanity warning to the logger if all logging is disabled
-	if !o.Logging.StandardEnabled && !o.Logging.AuthEnabled && !o.Logging.RequestEnabled {
-		logger.Print("Warning: Logging disabled. No further logs will be shown.")
-	}
-
-	// Pass configuration values to the standard logger
-	logger.SetStandardEnabled(o.Logging.StandardEnabled)
-	logger.SetAuthEnabled(o.Logging.AuthEnabled)
-	logger.SetReqEnabled(o.Logging.RequestEnabled)
-	logger.SetStandardTemplate(o.Logging.StandardFormat)
-	logger.SetAuthTemplate(o.Logging.AuthFormat)
-	logger.SetReqTemplate(o.Logging.RequestFormat)
-	logger.SetGetClientFunc(func(r *http.Request) string {
-		return getClientString(o.realClientIPParser, r, false)
-	})
-
-	excludePaths := make([]string, 0)
-	excludePaths = append(excludePaths, strings.Split(o.Logging.ExcludePaths, ",")...)
-	if o.Logging.SilencePing {
-		excludePaths = append(excludePaths, o.PingPath)
-	}
-
-	logger.SetExcludePaths(excludePaths)
-
-	if !o.Logging.LocalTime {
-		logger.SetFlags(logger.Flags() | logger.LUTC)
-	}
-
-	return msgs
 }
