@@ -170,24 +170,7 @@ func NewOptions() *Options {
 		UserIDClaim:                      "email",
 		InsecureOIDCAllowUnverifiedEmail: false,
 		SkipOIDCDiscovery:                false,
-		Logging: options.LoggingOptions{
-			ExcludePaths:    "",
-			LocalTime:       true,
-			SilencePing:     false,
-			AuthEnabled:     true,
-			AuthFormat:      logger.DefaultAuthLoggingFormat,
-			RequestEnabled:  true,
-			RequestFormat:   logger.DefaultRequestLoggingFormat,
-			StandardEnabled: true,
-			StandardFormat:  logger.DefaultStandardLoggingFormat,
-			File: options.LogFileOptions{
-				Filename:   "",
-				MaxSize:    100,
-				MaxAge:     7,
-				MaxBackups: 0,
-				Compress:   false,
-			},
-		},
+		Logging:                          options.DefaultLoggingOptions(),
 	}
 }
 

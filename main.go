@@ -98,24 +98,6 @@ func main() {
 	flagSet.Bool("redis-use-cluster", false, "Connect to redis cluster. Must set --redis-cluster-connection-urls to use this feature")
 	flagSet.StringSlice("redis-cluster-connection-urls", []string{}, "List of Redis cluster connection URLs (eg redis://HOST[:PORT]). Used in conjunction with --redis-use-cluster")
 
-	flagSet.String("logging-filename", "", "File to log requests to, empty for stdout")
-	flagSet.Int("logging-max-size", 100, "Maximum size in megabytes of the log file before rotation")
-	flagSet.Int("logging-max-age", 7, "Maximum number of days to retain old log files")
-	flagSet.Int("logging-max-backups", 0, "Maximum number of old log files to retain; 0 to disable")
-	flagSet.Bool("logging-local-time", true, "If the time in log files and backup filenames are local or UTC time")
-	flagSet.Bool("logging-compress", false, "Should rotated log files be compressed using gzip")
-
-	flagSet.Bool("standard-logging", true, "Log standard runtime information")
-	flagSet.String("standard-logging-format", logger.DefaultStandardLoggingFormat, "Template for standard log lines")
-
-	flagSet.Bool("request-logging", true, "Log HTTP requests")
-	flagSet.String("request-logging-format", logger.DefaultRequestLoggingFormat, "Template for HTTP request log lines")
-	flagSet.String("exclude-logging-paths", "", "Exclude logging requests to paths (eg: '/path1,/path2,/path3')")
-	flagSet.Bool("silence-ping-logging", false, "Disable logging of requests to ping endpoint")
-
-	flagSet.Bool("auth-logging", true, "Log authentication attempts")
-	flagSet.String("auth-logging-format", logger.DefaultAuthLoggingFormat, "Template for authentication log lines")
-
 	flagSet.String("provider", "google", "OAuth provider")
 	flagSet.String("provider-display-name", "", "Provider display name")
 	flagSet.String("oidc-issuer-url", "", "OpenID Connect issuer URL (ie: https://accounts.google.com)")
@@ -140,6 +122,8 @@ func main() {
 	flagSet.Bool("gcp-healthchecks", false, "Enable GCP/GKE healthcheck endpoints")
 
 	flagSet.String("user-id-claim", "email", "which claim contains the user ID")
+
+	flagSet.AddFlagSet(options.LoggingFlagSet())
 
 	flagSet.Parse(os.Args[1:])
 

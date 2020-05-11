@@ -12,6 +12,11 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// Allow comparison of defaults
+var (
+	defaultLoggingOptions = DefaultLoggingOptions()
+)
+
 func TestOptionsSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Options Suite")
@@ -294,6 +299,11 @@ var _ = Describe("Load", func() {
 						StringSliceOption: []string{"a", "b"},
 					},
 				},
+			}),
+			Entry("with LoggingOptions", &testOptionsTableInput{
+				flagSet:        LoggingFlagSet,
+				input:          &LoggingOptions{},
+				expectedOutput: &defaultLoggingOptions,
 			}),
 		)
 	})
