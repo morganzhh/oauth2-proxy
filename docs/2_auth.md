@@ -101,10 +101,23 @@ Note: When using the Azure Auth provider with nginx and the cookie session store
 1.  Create a new project: https://github.com/settings/developers
 2.  Under `Authorization callback URL` enter the correct url ie `https://internal.yourcompany.com/oauth2/callback`
 
-The GitHub auth provider supports two additional parameters to restrict authentication to Organization or Team level access. Restricting by org and team is normally accompanied with `--email-domain=*`
+The GitHub auth provider supports two additional ways to restrict authentication to either organization and optional team level access, or to collaborators of a repository. Restricting by these options is normally accompanied with `--email-domain=*`
+
+To restrict by organization only, include the following flag:
 
     -github-org="": restrict logins to members of this organisation
+
+To restrict within an organization to specific teams, include the following flag in addition to `-github-org`:
+
     -github-team="": restrict logins to members of any of these teams (slug), separated by a comma
+
+If you would rather restrict access to collaborators of a repository, those users must either have push access to a public repository or any access to a private repository:
+
+    -github-repo="": restrict logins to collaborators of this repository formatted as orgname/repo
+
+If you'd like to allow access to users with **read only** access to a **public** repository you will need to provide a [token](https://github.com/settings/tokens) for a user that has write access to the repository. The token must be created with at least the `public_repo` scope:
+
+    -github-token="": the token to use when verifying repository collaborators
 
 If you are using GitHub enterprise, make sure you set the following to the appropriate url:
 
@@ -306,7 +319,7 @@ If you encounter this, then you can create a `jwt_signing_key.pem` file in the t
 directory of the repo which contains the key in PEM format and then do your docker build.
 The docker build process will copy that file into your image which you can then access by
 setting the `OAUTH2_PROXY_JWT_KEY_FILE=/etc/ssl/private/jwt_signing_key.pem`
-environment variable, or by setting `-jwt-key-file=/etc/ssl/private/jwt_signing_key.pem` on the commandline.
+environment variable, or by setting `--jwt-key-file=/etc/ssl/private/jwt_signing_key.pem` on the commandline.
 
 Once it is running, you should be able to go to `http://localhost:4180/` in your browser,
 get authenticated by the login.gov integration server, and then get proxied on to your
@@ -318,7 +331,7 @@ proxy, and you would use real hostnames everywhere.
 
 Some providers do not support OIDC discovery via their issuer URL, so oauth2-proxy cannot simply grab the authorization, token and jwks URI endpoints from the provider's metadata.
 
-In this case, you can set the `-skip-oidc-discovery` option, and supply those required endpoints manually:
+In this case, you can set the `--skip-oidc-discovery` option, and supply those required endpoints manually:
 
 ```
     -provider oidc

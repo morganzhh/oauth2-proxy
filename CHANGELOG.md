@@ -22,9 +22,28 @@
 - [#487](https://github.com/oauth2-proxy/oauth2-proxy/pull/487) Switch flags to StringSlice instead of StringArray
   - Options that take multiple arguments now split strings on commas if present
   - Eg `--foo=a,b,c,d` would result in the values `a`, `b`, `c` and `d` instead of a single `a,b,c,d` value as before
+- [#535](https://github.com/oauth2-proxy/oauth2-proxy/pull/535) Drop support for pre v3.1 cookies
+  - The encoding for session cookies was changed starting in v3.1.0, support for the previous encoding is now dropped
+  - If you are upgrading from a version earlier than this, please upgrade via a version between v3.1.0 and v5.1.1
+- [#537](https://github.com/oauth2-proxy/oauth2-proxy/pull/537) Drop Fallback to Email if User not set
+  - Previously, when a session was loaded, if the User was not set, it would be replaced by the Email.
+    This behaviour was inconsistent as it required the session to be stored and then loaded to function properly.
+  - This behaviour has now been removed and the User field will remain empty if it was not set when the session was saved.
+  - In some scenarios `X-Forwarded-User` will now be empty. Use `X-Forwarded-Email` instead.
+  - In some scenarios, this may break setting Basic Auth on upstream or responses.
+    Use `--prefer-email-to-user` to restore falling back to the Email in these cases.
 
 ## Changes since v5.1.1
-
+- [#538](https://github.com/oauth2-proxy/oauth2-proxy/pull/538) Refactor sessions/utils.go functionality to other areas (@NickMeves)
+- [#503](https://github.com/oauth2-proxy/oauth2-proxy/pull/503) Implements --real-client-ip-header option to select the header from which to obtain a proxied client's IP (@Izzette)
+- [#529](https://github.com/oauth2-proxy/oauth2-proxy/pull/529) Add local test environments for testing changes and new features (@JoelSpeed)
+- [#537](https://github.com/oauth2-proxy/oauth2-proxy/pull/537) Drop Fallback to Email if User not set (@JoelSpeed)
+- [#535](https://github.com/oauth2-proxy/oauth2-proxy/pull/535) Drop support for pre v3.1 cookies (@JoelSpeed)
+- [#533](https://github.com/oauth2-proxy/oauth2-proxy/pull/487) Set up code coverage within Travis for Code Climate (@JoelSpeed)
+- [#514](https://github.com/oauth2-proxy/oauth2-proxy/pull/514) Add basic string functions to templates
+- [#524](https://github.com/oauth2-proxy/oauth2-proxy/pull/524) Sign cookies with SHA256 (@NickMeves)
+- [#515](https://github.com/oauth2-proxy/oauth2-proxy/pull/515) Drop configure script in favour of native Makefile env and checks (@JoelSpeed)
+- [#519](https://github.com/oauth2-proxy/oauth2-proxy/pull/519) Support context in providers (@johejo)
 - [#487](https://github.com/oauth2-proxy/oauth2-proxy/pull/487) Switch flags to PFlag to remove StringArray (@JoelSpeed)
 - [#484](https://github.com/oauth2-proxy/oauth2-proxy/pull/484) Replace configuration loading with Viper (@JoelSpeed)
 - [#499](https://github.com/oauth2-proxy/oauth2-proxy/pull/499) Add `-user-id-claim` to support generic claims in addition to email (@holyjak)
@@ -49,6 +68,7 @@
 - [#483](https://github.com/oauth2-proxy/oauth2-proxy/pull/483) Warn users when session cookies are split (@JoelSpeed)
 - [#488](https://github.com/oauth2-proxy/oauth2-proxy/pull/488) Set-Basic-Auth should default to false (@JoelSpeed)
 - [#494](https://github.com/oauth2-proxy/oauth2-proxy/pull/494) Upstream websockets TLS certificate validation now depends on ssl-upstream-insecure-skip-verify (@yaroslavros)
+- [#497](https://github.com/oauth2-proxy/oauth2-proxy/pull/497) Restrict access using Github collaborators (@jsclayton)
 
 # v5.1.1
 
