@@ -137,6 +137,8 @@ func main() {
 	flagSet.Bool("gcp-healthchecks", false, "Enable GCP/GKE healthcheck endpoints")
 
 	flagSet.String("user-id-claim", "email", "which claim contains the user ID")
+	flagSet.StringSlice("access-roles", []string{}, "roles that can access proxy urls")
+	flagSet.String("auth-server", "", "uniCloud auth server")
 
 	flagSet.Parse(os.Args[1:])
 

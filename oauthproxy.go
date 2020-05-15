@@ -339,6 +339,19 @@ func (p *OAuthProxy) GetRedirectURI(host string) string {
 			u.Scheme = httpScheme
 		}
 	}
+
+	//after rproxy, 80 will be add in host, remove it for callback validation
+	var portMap = map[string]string{
+		"http":  "80",
+		"https": "443",
+	}
+	hostPort := strings.Split(host, ":")
+	if len(hostPort) > 1 {
+		if hostPort[1] == portMap[u.Scheme] {
+			logger.Printf("Normalize callback host from %s to %s", host, hostPort[0])
+			host = hostPort[0]
+		}
+	}
 	u.Host = host
 	return u.String()
 }
