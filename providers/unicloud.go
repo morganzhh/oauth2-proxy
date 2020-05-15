@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -29,8 +30,8 @@ func NewUniCloudProvider(p *ProviderData) *UniCloudProvider {
 	return &UniCloudProvider{ProviderData: p}
 }
 
-func (p *UniCloudProvider) GetEmailAddress(s *sessions.SessionState) (string, error) {
-	req, err := http.NewRequest("GET", p.ValidateURL.String(), nil)
+func (p *UniCloudProvider) GetEmailAddress(ctx context.Context, s *sessions.SessionState) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.ValidateURL.String(), nil)
 	if err != nil {
 		logger.Printf("failed building request %s", err)
 		return "", err
@@ -56,8 +57,8 @@ func (p *UniCloudProvider) GetEmailAddress(s *sessions.SessionState) (string, er
 }
 
 // GetUserName returns the Account username
-func (p *UniCloudProvider) GetUserName(s *sessions.SessionState) (string, error) {
-	req, err := http.NewRequest("GET", p.ValidateURL.String(), nil)
+func (p *UniCloudProvider) GetUserName(ctx context.Context, s *sessions.SessionState) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.ValidateURL.String(), nil)
 	if err != nil {
 		logger.Printf("failed building request %s", err)
 		return "", err
@@ -73,8 +74,8 @@ func (p *UniCloudProvider) GetUserName(s *sessions.SessionState) (string, error)
 }
 
 // GetPreferredUsername returns the Account preferred username
-func (p *UniCloudProvider) GetPreferredUsername(s *sessions.SessionState) (string, error) {
-	req, err := http.NewRequest("GET", p.ValidateURL.String(), nil)
+func (p *UniCloudProvider) GetPreferredUsername(ctx context.Context, s *sessions.SessionState) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", p.ValidateURL.String(), nil)
 	if err != nil {
 		logger.Printf("failed building request %s", err)
 		return "", err
@@ -103,8 +104,8 @@ func (p *UniCloudProvider) ValidateGroup(roles string) bool {
 	return false
 }
 
-func (p *UniCloudProvider) ValidateSessionState(s *sessions.SessionState) bool {
-	return validateToken(p, s.AccessToken, getUniCloudHeader(s.AccessToken))
+func (p *UniCloudProvider) ValidateSessionState(ctx context.Context, s *sessions.SessionState) bool {
+	return validateToken(ctx, p, s.AccessToken, getUniCloudHeader(s.AccessToken))
 }
 
 func itemExists(slice interface{}, item interface{}) bool {
