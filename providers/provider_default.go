@@ -172,3 +172,11 @@ func (p *ProviderData) CreateSessionStateFromBearerToken(ctx context.Context, ra
 
 	return newSession, nil
 }
+
+func (p *ProviderData) ValidateRedirect(requestURI string, s *sessions.SessionState) bool {
+	return true
+}
+
+func (p *ProviderData) GetBasicUser(requestURI string, s *sessions.SessionState) (string, string) {
+	return "", ""
+}

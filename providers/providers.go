@@ -15,8 +15,10 @@ type Provider interface {
 	GetPreferredUsername(ctx context.Context, s *sessions.SessionState) (string, error)
 	Redeem(ctx context.Context, redirectURI, code string) (*sessions.SessionState, error)
 	ValidateGroup(string) bool
+	ValidateRedirect(requestURI string, s *sessions.SessionState) bool
+	GetBasicUser(requestURI string, s *sessions.SessionState) (string, string)
 	ValidateSessionState(ctx context.Context, s *sessions.SessionState) bool
-	GetLoginURL(redirectURI, finalRedirect string) string
+	GetLoginURL(requestURI, finalRedirect string) string
 	RefreshSessionIfNeeded(ctx context.Context, s *sessions.SessionState) (bool, error)
 	CreateSessionStateFromBearerToken(ctx context.Context, rawIDToken string, idToken *oidc.IDToken) (*sessions.SessionState, error)
 }

@@ -69,25 +69,26 @@ type Options struct {
 	Cookie  options.CookieOptions  `cfg:",squash"`
 	Session options.SessionOptions `cfg:",squash"`
 
-	Upstreams                     []string      `flag:"upstream" cfg:"upstreams" env:"OAUTH2_PROXY_UPSTREAMS"`
-	SkipAuthRegex                 []string      `flag:"skip-auth-regex" cfg:"skip_auth_regex" env:"OAUTH2_PROXY_SKIP_AUTH_REGEX"`
-	SkipJwtBearerTokens           bool          `flag:"skip-jwt-bearer-tokens" cfg:"skip_jwt_bearer_tokens" env:"OAUTH2_PROXY_SKIP_JWT_BEARER_TOKENS"`
-	ExtraJwtIssuers               []string      `flag:"extra-jwt-issuers" cfg:"extra_jwt_issuers" env:"OAUTH2_PROXY_EXTRA_JWT_ISSUERS"`
-	PassBasicAuth                 bool          `flag:"pass-basic-auth" cfg:"pass_basic_auth" env:"OAUTH2_PROXY_PASS_BASIC_AUTH"`
-	SetBasicAuth                  bool          `flag:"set-basic-auth" cfg:"set_basic_auth" env:"OAUTH2_PROXY_SET_BASIC_AUTH"`
-	PreferEmailToUser             bool          `flag:"prefer-email-to-user" cfg:"prefer_email_to_user" env:"OAUTH2_PROXY_PREFER_EMAIL_TO_USER"`
-	BasicAuthPassword             string        `flag:"basic-auth-password" cfg:"basic_auth_password" env:"OAUTH2_PROXY_BASIC_AUTH_PASSWORD"`
-	PassAccessToken               bool          `flag:"pass-access-token" cfg:"pass_access_token" env:"OAUTH2_PROXY_PASS_ACCESS_TOKEN"`
-	PassHostHeader                bool          `flag:"pass-host-header" cfg:"pass_host_header" env:"OAUTH2_PROXY_PASS_HOST_HEADER"`
-	SkipProviderButton            bool          `flag:"skip-provider-button" cfg:"skip_provider_button" env:"OAUTH2_PROXY_SKIP_PROVIDER_BUTTON"`
-	PassUserHeaders               bool          `flag:"pass-user-headers" cfg:"pass_user_headers" env:"OAUTH2_PROXY_PASS_USER_HEADERS"`
-	SSLInsecureSkipVerify         bool          `flag:"ssl-insecure-skip-verify" cfg:"ssl_insecure_skip_verify" env:"OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY"`
-	SSLUpstreamInsecureSkipVerify bool          `flag:"ssl-upstream-insecure-skip-verify" cfg:"ssl_upstream_insecure_skip_verify" env:"OAUTH2_PROXY_SSL_UPSTREAM_INSECURE_SKIP_VERIFY"`
-	SetXAuthRequest               bool          `flag:"set-xauthrequest" cfg:"set_xauthrequest" env:"OAUTH2_PROXY_SET_XAUTHREQUEST"`
-	SetAuthorization              bool          `flag:"set-authorization-header" cfg:"set_authorization_header" env:"OAUTH2_PROXY_SET_AUTHORIZATION_HEADER"`
-	PassAuthorization             bool          `flag:"pass-authorization-header" cfg:"pass_authorization_header" env:"OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER"`
-	SkipAuthPreflight             bool          `flag:"skip-auth-preflight" cfg:"skip_auth_preflight" env:"OAUTH2_PROXY_SKIP_AUTH_PREFLIGHT"`
-	FlushInterval                 time.Duration `flag:"flush-interval" cfg:"flush_interval" env:"OAUTH2_PROXY_FLUSH_INTERVAL"`
+	Upstreams                     []string            `flag:"upstream" cfg:"upstreams" env:"OAUTH2_PROXY_UPSTREAMS"`
+	UpstreamsExt                  []options.ProxyAuth `cfg:",internal"`
+	SkipAuthRegex                 []string            `flag:"skip-auth-regex" cfg:"skip_auth_regex" env:"OAUTH2_PROXY_SKIP_AUTH_REGEX"`
+	SkipJwtBearerTokens           bool                `flag:"skip-jwt-bearer-tokens" cfg:"skip_jwt_bearer_tokens" env:"OAUTH2_PROXY_SKIP_JWT_BEARER_TOKENS"`
+	ExtraJwtIssuers               []string            `flag:"extra-jwt-issuers" cfg:"extra_jwt_issuers" env:"OAUTH2_PROXY_EXTRA_JWT_ISSUERS"`
+	PassBasicAuth                 bool                `flag:"pass-basic-auth" cfg:"pass_basic_auth" env:"OAUTH2_PROXY_PASS_BASIC_AUTH"`
+	SetBasicAuth                  bool                `flag:"set-basic-auth" cfg:"set_basic_auth" env:"OAUTH2_PROXY_SET_BASIC_AUTH"`
+	PreferEmailToUser             bool                `flag:"prefer-email-to-user" cfg:"prefer_email_to_user" env:"OAUTH2_PROXY_PREFER_EMAIL_TO_USER"`
+	BasicAuthPassword             string              `flag:"basic-auth-password" cfg:"basic_auth_password" env:"OAUTH2_PROXY_BASIC_AUTH_PASSWORD"`
+	PassAccessToken               bool                `flag:"pass-access-token" cfg:"pass_access_token" env:"OAUTH2_PROXY_PASS_ACCESS_TOKEN"`
+	PassHostHeader                bool                `flag:"pass-host-header" cfg:"pass_host_header" env:"OAUTH2_PROXY_PASS_HOST_HEADER"`
+	SkipProviderButton            bool                `flag:"skip-provider-button" cfg:"skip_provider_button" env:"OAUTH2_PROXY_SKIP_PROVIDER_BUTTON"`
+	PassUserHeaders               bool                `flag:"pass-user-headers" cfg:"pass_user_headers" env:"OAUTH2_PROXY_PASS_USER_HEADERS"`
+	SSLInsecureSkipVerify         bool                `flag:"ssl-insecure-skip-verify" cfg:"ssl_insecure_skip_verify" env:"OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY"`
+	SSLUpstreamInsecureSkipVerify bool                `flag:"ssl-upstream-insecure-skip-verify" cfg:"ssl_upstream_insecure_skip_verify" env:"OAUTH2_PROXY_SSL_UPSTREAM_INSECURE_SKIP_VERIFY"`
+	SetXAuthRequest               bool                `flag:"set-xauthrequest" cfg:"set_xauthrequest" env:"OAUTH2_PROXY_SET_XAUTHREQUEST"`
+	SetAuthorization              bool                `flag:"set-authorization-header" cfg:"set_authorization_header" env:"OAUTH2_PROXY_SET_AUTHORIZATION_HEADER"`
+	PassAuthorization             bool                `flag:"pass-authorization-header" cfg:"pass_authorization_header" env:"OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER"`
+	SkipAuthPreflight             bool                `flag:"skip-auth-preflight" cfg:"skip_auth_preflight" env:"OAUTH2_PROXY_SKIP_AUTH_PREFLIGHT"`
+	FlushInterval                 time.Duration       `flag:"flush-interval" cfg:"flush_interval" env:"OAUTH2_PROXY_FLUSH_INTERVAL"`
 
 	// These options allow for other providers besides Google, with
 	// potential overrides.
@@ -572,7 +573,7 @@ func parseProviderInfo(o *Options, msgs []string) []string {
 			}
 		}
 	case *providers.UniCloudProvider:
-		p.SetRoles(o.RoleForMonitor)
+		p.SetUpstreams(o.UpstreamsExt)
 		p.LoginURL, _ = url.Parse(o.AuthServer + "/oauth/uni/oauth/authorize")
 		p.RedeemURL, _ = url.Parse(o.AuthServer + "/oauth/uni/oauth/token")
 		p.ValidateURL, _ = url.Parse(o.AuthServer + "/api/hydrology/debug/usercenter/user/me")

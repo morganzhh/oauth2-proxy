@@ -4,23 +4,36 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"reflect"
+	"net/url"
 	"strings"
+
+	"github.com/oauth2-proxy/oauth2-proxy/pkg/apis/options"
 
 	"github.com/oauth2-proxy/oauth2-proxy/pkg/apis/sessions"
 	"github.com/oauth2-proxy/oauth2-proxy/pkg/logger"
 	"github.com/oauth2-proxy/oauth2-proxy/pkg/requests"
 )
 
-type UniCloudProvider struct {
-	*ProviderData
-	roles  []string
-	server string
+type ProxyAuth struct {
+	Upstream      url.URL
+	GuestRoleName string
+	GuestUser     string
+	GuestPassword string
+	AdminRoleName string
+	AdminUser     string
+	AdminPassword string
 }
 
-func (p *UniCloudProvider) SetRoles(roles []string) {
-	p.roles = roles
+type UniCloudProvider struct {
+	*ProviderData
+	upstreams []ProxyAuth
+	server    string
 }
+
+func (p *UniCloudProvider) SetUpstreams(upstreams []options.ProxyAuth) {
+	p.upstreams = mapping(upstreams)
+}
+
 func (p *UniCloudProvider) SetServer(server string) {
 	p.server = server
 }
@@ -49,9 +62,9 @@ func (p *UniCloudProvider) GetEmailAddress(ctx context.Context, s *sessions.Sess
 		return "", err
 	}
 
-	listRoles := make([]string, 10)
-	for _, role := range roles {
-		listRoles = append(listRoles, role.(map[string]interface{})["name"].(string))
+	listRoles := make([]string, len(roles))
+	for i, role := range roles {
+		listRoles[i] = role.(map[string]interface{})["name"].(string)
 	}
 	return strings.Join(listRoles, ":"), err
 }
@@ -90,43 +103,96 @@ func (p *UniCloudProvider) GetPreferredUsername(ctx context.Context, s *sessions
 	return json.Get("name").String()
 }
 
-func (p *UniCloudProvider) ValidateGroup(roles string) bool {
-	// if none provided, all login users can access
-	if len(p.roles) == 0 {
-		return true
+func (p *UniCloudProvider) ValidateRedirect(requestURI string, s *sessions.SessionState) bool {
+	cfg := getProxyCfg(p.upstreams, requestURI)
+	if cfg == nil {
+		return false
 	}
-
+	roles := strings.Split(s.Email, ",")[0]
+	loginRole := ""
+	login := false
 	for _, role := range strings.Split(roles, ":") {
-		if itemExists(p.roles, role) {
-			return true
+		if role == cfg.GuestRoleName {
+			login = true
+			loginRole = "user"
+		}
+		// in case of user has both admin and user role
+		if role == cfg.AdminRoleName {
+			login = true
+			loginRole = "admin"
+			break
 		}
 	}
-	return false
+	if login {
+		s.Email = strings.Join([]string{roles, loginRole}, ",")
+	}
+	return login
 }
 
 func (p *UniCloudProvider) ValidateSessionState(ctx context.Context, s *sessions.SessionState) bool {
 	return validateToken(ctx, p, s.AccessToken, getUniCloudHeader(s.AccessToken))
 }
 
-func itemExists(slice interface{}, item interface{}) bool {
-	s := reflect.ValueOf(slice)
-
-	if s.Kind() != reflect.Slice {
-		panic("Invalid data-type")
-	}
-
-	for i := 0; i < s.Len(); i++ {
-		if s.Index(i).Interface() == item {
-			return true
+func (p *UniCloudProvider) GetBasicUser(requestURI string, s *sessions.SessionState) (string, string) {
+	cfg := getProxyCfg(p.upstreams, requestURI)
+	if nil != cfg {
+		emailExt := strings.Split(s.Email, ",")
+		if len(emailExt) == 2 {
+			if emailExt[1] == "admin" {
+				return cfg.AdminUser, cfg.AdminPassword
+			} else if emailExt[1] == "user" {
+				return cfg.GuestUser, cfg.GuestPassword
+			}
 		}
 	}
-
-	return false
+	return "", ""
 }
+
+func getProxyCfg(cfgs []ProxyAuth, requestURI string) *ProxyAuth {
+	for _, cfg := range cfgs {
+		if strings.HasPrefix(requestURI, cfg.Upstream.Path) {
+			return &cfg
+		}
+	}
+	return nil
+}
+
+//func itemExists(slice interface{}, item interface{}) bool {
+//	s := reflect.ValueOf(slice)
+//
+//	if s.Kind() != reflect.Slice {
+//		panic("Invalid data-type")
+//	}
+//
+//	for i := 0; i < s.Len(); i++ {
+//		if s.Index(i).Interface() == item {
+//			return true
+//		}
+//	}
+//
+//	return false
+//}
 
 func getUniCloudHeader(accessToken string) http.Header {
 	header := make(http.Header)
 	header.Set("Content-Type", "application/json")
 	header.Set("Authorization", fmt.Sprintf("token %s", accessToken))
 	return header
+}
+
+func mapping(opts []options.ProxyAuth) []ProxyAuth {
+	uni := make([]ProxyAuth, len(opts))
+	for i, opt := range opts {
+		path, err := url.Parse(opt.Upstream)
+		if nil == err {
+			uni[i].Upstream = *path
+			uni[i].AdminPassword = opt.AdminPassword
+			uni[i].AdminRoleName = opt.AdminRoleName
+			uni[i].AdminUser = opt.AdminUser
+			uni[i].GuestPassword = opt.GuestPassword
+			uni[i].GuestRoleName = opt.GuestRoleName
+			uni[i].GuestUser = opt.GuestUser
+		}
+	}
+	return uni
 }

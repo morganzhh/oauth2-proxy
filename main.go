@@ -142,7 +142,7 @@ func main() {
 	flagSet.String("user-id-claim", "email", "which claim contains the user ID")
 	flagSet.StringSlice("access-roles", []string{}, "roles that can access proxy urls")
 	flagSet.String("auth-server", "", "uniCloud auth server")
-
+	flagSet.String("upstream-ext", "", "test")
 	flagSet.Parse(os.Args[1:])
 
 	if *showVersion {

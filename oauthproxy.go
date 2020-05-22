@@ -58,6 +58,8 @@ var (
 	// ErrNeedsLogin means the user should be redirected to the login page
 	ErrNeedsLogin = errors.New("redirect to login page")
 
+	ErrNoPermission = errors.New("no permission for this redirect")
+
 	// Used to check final redirects are not susceptible to open redirects.
 	// Matches //, /\ and both of these with whitespace in between (eg / / or / \).
 	invalidRedirectRegex = regexp.MustCompile(`^/(\s|\v)?(/|\\)`)
@@ -822,7 +824,7 @@ func (p *OAuthProxy) OAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// set cookie, or deny
-	if p.Validator(session.Email) && p.provider.ValidateGroup(session.Email) {
+	if p.Validator(session.Email) && p.provider.ValidateGroup(session.Email) && p.provider.ValidateRedirect(redirect, session) {
 		logger.PrintAuthf(session.Email, req, logger.AuthSuccess, "Authenticated via OAuth2: %s", session)
 		err := p.SaveSession(rw, req, session)
 		if err != nil {
@@ -874,6 +876,8 @@ func (p *OAuthProxy) Proxy(rw http.ResponseWriter, req *http.Request) {
 			p.SignInPage(rw, req, http.StatusForbidden)
 		}
 
+	case ErrNoPermission:
+		p.ErrorPage(rw, http.StatusForbidden, "Forbidden", "No permission for this application")
 	default:
 		// unknown error
 		logger.Printf("Unexpected internal error: %s", err)
@@ -969,6 +973,8 @@ func (p *OAuthProxy) getAuthenticatedSession(rw http.ResponseWriter, req *http.R
 
 	if session == nil {
 		return nil, ErrNeedsLogin
+	} else if !p.provider.ValidateRedirect(req.RequestURI, session) {
+		return nil, ErrNoPermission
 	}
 
 	return session, nil
@@ -982,7 +988,12 @@ func (p *OAuthProxy) addHeadersForProxying(rw http.ResponseWriter, req *http.Req
 			req.Header["X-Forwarded-User"] = []string{session.Email}
 			req.Header.Del("X-Forwarded-Email")
 		} else {
-			req.SetBasicAuth(session.User, p.BasicAuthPassword)
+			user, pass := p.provider.GetBasicUser(req.RequestURI, session)
+			if user == "" {
+				user = session.User
+				pass = p.BasicAuthPassword
+			}
+			req.SetBasicAuth(user, pass)
 			req.Header["X-Forwarded-User"] = []string{session.User}
 			if session.Email != "" {
 				req.Header["X-Forwarded-Email"] = []string{session.Email}
