@@ -44,7 +44,6 @@ func Load(configFileName string, flagSet *pflag.FlagSet, into interface{}) error
 	if err != nil {
 		return fmt.Errorf("error unmarshalling config: %w", err)
 	}
-
 	return nil
 }
 

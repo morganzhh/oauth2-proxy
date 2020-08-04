@@ -351,7 +351,7 @@ func (p *OAuthProxy) GetRedirectURI(host string) string {
 	}
 	hostPort := strings.Split(host, ":")
 	if len(hostPort) > 1 {
-		if hostPort[1] == portMap[u.Scheme] {
+		if hostPort[1] == portMap["http"] || hostPort[1] == portMap["https"] {
 			logger.Printf("Normalize callback host from %s to %s", host, hostPort[0])
 			host = hostPort[0]
 		}

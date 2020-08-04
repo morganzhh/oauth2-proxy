@@ -577,6 +577,10 @@ func parseProviderInfo(o *Options, msgs []string) []string {
 		p.LoginURL, _ = url.Parse(o.AuthServer + "/oauth/uni/oauth/authorize")
 		p.RedeemURL, _ = url.Parse(o.AuthServer + "/oauth/uni/oauth/token")
 		p.ValidateURL, _ = url.Parse(o.AuthServer + "/api/hydrology/debug/usercenter/user/me")
+		logger.Printf("server config: %s\r\n", o.AuthServer)
+		logger.Printf("prefix config: %s\r\n", o.ProxyPrefix)
+		logger.Printf("login LoginURL: %s\r\n", p.LoginURL)
+
 	}
 	return msgs
 }

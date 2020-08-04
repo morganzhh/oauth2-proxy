@@ -152,6 +152,7 @@ func main() {
 
 	opts := NewOptions()
 	err := options.Load(*config, flagSet, opts)
+	logger.Printf("from config: %s", opts.AuthServer)
 	if err != nil {
 		logger.Printf("ERROR: Failed to load config: %v", err)
 		os.Exit(1)

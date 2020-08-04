@@ -176,7 +176,7 @@ func getProxyCfg(cfgs []ProxyAuth, requestURI string) *ProxyAuth {
 func getUniCloudHeader(accessToken string) http.Header {
 	header := make(http.Header)
 	header.Set("Content-Type", "application/json")
-	header.Set("Authorization", fmt.Sprintf("token %s", accessToken))
+	header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	return header
 }
 
